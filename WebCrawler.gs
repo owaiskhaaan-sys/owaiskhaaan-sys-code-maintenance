@@ -181,8 +181,16 @@ function isValidUrl(url) {
   }
   
   try {
-    const urlPattern = /^https?:\/\/([\w\-]+(\.[\w\-]+)+)([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?$/;
-    return urlPattern.test(url.trim());
+    const trimmed = url.trim();
+    
+    // Basic pattern check for http/https URLs
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      return false;
+    }
+    
+    // Check for valid URL structure: protocol://domain[/path]
+    const urlPattern = /^https?:\/\/([\w\-]+(\.[\w\-]+)+)([\w\-\.,@?^=%&:/~\+#]*)?$/;
+    return urlPattern.test(trimmed);
   } catch (error) {
     return false;
   }
@@ -423,8 +431,14 @@ function extractLinks(html, baseUrl, logger) {
       
       // Convert relative URLs to absolute
       if (link.startsWith('/')) {
-        const protocol = baseUrl.match(/^https?:/)[0];
-        link = `${protocol}//${baseDomain}${link}`;
+        const protocolMatch = baseUrl.match(/^https?:/);
+        if (protocolMatch) {
+          const protocol = protocolMatch[0];
+          link = `${protocol}//${baseDomain}${link}`;
+        } else {
+          logger.warn('Unable to determine protocol for relative URL', { baseUrl: baseUrl });
+          continue;
+        }
       } else if (!link.startsWith('http')) {
         // Handle relative paths without leading slash
         const baseWithoutFile = baseUrl.replace(/\/[^\/]*$/, '/');
